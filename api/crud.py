@@ -1,0 +1,327 @@
+from sqlalchemy.orm import Session
+from sqlalchemy.sql import func
+from sqlalchemy import text
+import datetime as dt
+import time as t
+from . import models, schemas
+
+
+# -------------------------------------------------------------------------------
+def get_user(db: Session, PlayerID: int):
+    return db.query(models.TableCore).filter(models.TableCore.id == PlayerID).first()
+
+
+# -------------------------------------------------------------------------------
+def get_user_discord_id(db: Session, discord_id: str):
+    return db.query(models.TableCore).filter(models.TableCore.discord_id == discord_id).first()
+
+
+# -------------------------------------------------------------------------------
+def get_user_by_name(db: Session, name: str):
+    return db.query(models.TableCore).filter(models.TableCore.pseudo == name).first()
+
+
+# -------------------------------------------------------------------------------
+def get_users(db: Session, skip: int = 0, limit: int = 100):
+    return db.query(models.TableCore).offset(skip).limit(limit).all()
+
+
+# -------------------------------------------------------------------------------
+def get_Godchilds(db: Session, PlayerID: int):
+    return db.query(models.TableCore).filter(models.TableCore.godparent == PlayerID).first()
+
+
+# -------------------------------------------------------------------------------
+def get_PlayerID(db: Session, discord_id: str, platform: str):
+    return get_user_discord_id(db=db, discord_id=discord_id)
+
+
+# ===============================================================================
+# Createur
+# ===============================================================================
+def create_user(db: Session, user: schemas.TableCore):
+    id = 0
+    boucleID = True
+    while boucleID:
+        if not get_user(db, id):
+            boucleID = False
+        else:
+            id += 1
+    db_user = models.TableCore(
+        playerid = id,
+        discord_id = user.discord_id,
+        pseudo = user.pseudo,
+        lang = user.lang,
+        guild = None,
+        level = 0,
+        xp = 0,
+        devise = 0,
+        super_devise = 0,
+        godparent = user.godparent,
+        com_time = []
+    )
+    db.add(db_user)
+    db.commit()
+    db.refresh(db_user)
+    return db_user
+
+
+# -------------------------------------------------------------------------------
+def create_com_time(db: Session, user: schemas.TableComTime):
+    db_user = models.GemsComTime(
+        playerid = user.playerid,
+        command = user.command,
+        time = user.time,
+        owner = user.owner
+    )
+    db.add(db_user)
+    db.commit()
+    db.refresh(db_user)
+    return db_user
+
+
+# ===============================================================================
+# Compteur
+# ===============================================================================
+def countTotalDevise(db: Session):
+    # Donne le nombre total de gems (somme des gems de tout les utilisateurs de Get Gems)
+    return db.query(func.sum(models.TableCore.devise).label("total_devise")).first()
+
+
+# -------------------------------------------------------------------------------
+def countTotalSuperDevise(db: Session):
+    # Donne le nombre total de spinelles (somme des spinelles de tout les utilisateurs de Get Gems)
+    db.query(func.sum(models.TableCore.super_devise).label("total_super_devise")).first()
+
+
+# -------------------------------------------------------------------------------
+def taille(db: Session):
+    """Retourne la taille de la table selectionnée"""
+    return db.query(func.count(models.TableCore.id).label("taille")).first()
+
+
+# ===============================================================================
+# Fonctions
+# ===============================================================================
+def in_table(db: Session, nameTable, fieldName, filtre = None, filtreValue = None):
+    """
+    string          nameTable
+    string/tab      fieldname
+    string/tab      filtre
+    string/tab      filtreValue
+    """
+    script = ""
+
+    if type(fieldName) is str:
+        script = "SELECT {0} FROM {1}".format(fieldName, nameTable)
+    elif type(fieldName) is list:
+        script += "SELECT {0}".format(fieldName[0])
+        for i in range(1, len(filtre)):
+            script += ",{0}".format(fieldName[i])
+        script += " FROM {0}".format(nameTable)
+
+    if filtre is not None:
+        if type(filtre) is list:
+            script += " WHERE {0} = '{1}'".format(filtre[0], filtreValue[0])
+            for i in range(1, len(filtre)):
+                script += " AND {0} = '{1}'".format(filtre[i], filtreValue[i])
+        elif type(filtre) is str:
+            script += " WHERE {0} = '{1}'".format(filtre, filtreValue)
+    # print(script)
+    script = text(script)
+    rows = db.execute(script).fetchall()
+    # print(rows)
+    if rows == []:
+        return False
+    for r in rows:
+        rs = dict()
+        for x in r.keys():
+            rs[x] = r[x]
+        return rs
+
+
+# -------------------------------------------------------------------------------
+def spam(db: Session, PlayerID, couldown, Command):
+    """Antispam """
+    nameTable = "com_time"
+    ComTime = value(db, PlayerID, nameTable, "time", "command", Command)
+    if not ComTime or ComTime == None:
+        return True
+    elif ComTime != 0:
+        time = ComTime
+    else:
+        return True
+
+    # on récupère la date de la dernière commande
+    return(float(time) < t.time()-couldown)
+
+
+# -------------------------------------------------------------------------------
+def updateComTime(db: Session, PlayerID, Command):
+    """
+    Met à jour la date du dernier appel à une fonction
+    """
+    nameTable = "com_time"
+
+    old_value = value(db, PlayerID, nameTable, "time", "command", Command)
+    try:
+        if old_value is not False:
+            update(db, PlayerID, nameTable, "time", t.time(), "command", Command)
+            return {'error': 0, 'action': 'update success'}
+        else:
+            comtime_model = models.TableComTime(
+                playerid = PlayerID,
+                command = Command,
+                time = t.time(),
+                owner = PlayerID
+            )
+            create_com_time(db, comtime_model)
+            return {'error': 0, 'action': 'update fail -> create success'}
+    except:
+        return {'error': 404, 'action': 'echec'}
+
+
+# -------------------------------------------------------------------------------
+def value(db: Session, PlayerID, nameTable, fieldName, filtre = None, filtreValue = None, order = None):
+    """
+    int             PlayerID: id du joueur dans la base de données
+    string          nameTable: Nom de la table
+    string          fieldName: string du nom du champ à chercher
+    string/tab      filtre: liste des filtres WHERE
+    string/tab      filtreValue: liste des valeurs de chaque filtre
+    tab             order: paramètre de tri
+    """
+    value = []
+    mefn = ''
+
+    try:
+        # Récupération de la valeur de fieldName dans la table nameTable
+        if type(fieldName) is str:
+            mefn = fieldName
+        elif type(fieldName) is list:
+            for i in range(0, len(fieldName)):
+                if i > 0:
+                    mefn += ", "
+                mefn += "{}".format(fieldName[i])
+        else:
+            return False
+        script = "SELECT {1} FROM {0}".format(nameTable, mefn)
+        script += " WHERE playerid = '{0}'".format(PlayerID)
+        if filtre is not None:
+            if type(filtre) is list:
+                for i in range(0, len(filtre)):
+                    script += " AND {0} = '{1}'".format(filtre[i], filtreValue[i])
+            elif type(filtre) is str:
+                script += " AND {0} = '{1}'".format(filtre, filtreValue)
+        if order is not None:
+            script += " ORDER BY {0}".format(order)
+        # print(script)
+        script = text(script)
+        value = db.execute(script).fetchall()
+    except:
+        # Aucune données n'a été trouvé
+        value = []
+
+    # print("==== value ====")
+    # print(value)
+    if value == []:
+        return False
+    else:
+        if len(value[0]) == 1:
+            return value[0][0]
+        else:
+            return value[0]
+
+
+# -------------------------------------------------------------------------------
+def valueAll(db: Session, PlayerID, nameTable, fieldName, filtre = None, filtreValue = None, order = None):
+    """
+    int             PlayerID: id du joueur dans la base de données
+    string          nameTable: Nom de la table
+    string/tab      fieldName: string du nom du/des champ(s) à chercher
+    string/tab      filtre: liste des filtres WHERE
+    string/tab      filtreValue: liste des valeurs de chaque filtre
+    tab             order: paramètre de tri
+    """
+    mefn = ""
+
+    try:
+        # Récupération de la valeur de fieldName dans la table nameTable
+        if type(fieldName) is str:
+            mefn = fieldName
+        elif type(fieldName) is list:
+            for i in range(0, len(fieldName)):
+                if i > 0:
+                    mefn += ", "
+                mefn += "{}".format(fieldName[i])
+        else:
+            return False
+        script = "SELECT {1} FROM {0}".format(nameTable, mefn)
+        script += " WHERE playerid = '{0}'".format(PlayerID)
+        if filtre is not None:
+            if type(filtre) is list:
+                for i in range(0, len(filtre)):
+                    script += " AND {0} = '{1}'".format(filtre[i], filtreValue[i])
+            elif type(filtre) is str:
+                script += " AND {0} = '{1}'".format(filtre, filtreValue)
+        if order is not None:
+            script += " ORDER BY {0}".format(order)
+        # print(script)
+        script = text(script)
+        value = db.execute(script).fetchall()
+    except:
+        # Aucune données n'a été trouvé
+        value = []
+
+    # print(value)
+    if value == []:
+        return False
+    else:
+        return value
+
+
+# -------------------------------------------------------------------------------
+def update(db: Session, PlayerID, nameTable, fieldName, fieldValue, filtre = None, filtreValue = None, order = None):
+    """
+    int             PlayerID: id du joueur dans la base de données
+    string          nameTable: Nom de la table
+    string/tab      fieldName: nom du/des champ(s) à chercher
+    string/tab      fieldValue: valeur associé au fieldName
+    string/tab      filtre: liste des filtres WHERE
+    string/tab      filtreValue: liste des valeurs de chaque filtre
+    tab             order: paramètre de tri
+    """
+    mefdv = ""
+    script = ""
+    val = value(db, PlayerID, nameTable, fieldName, filtre, filtreValue, order)
+    # Vérification
+    if val != [] or val is not False:
+        # Mise en forme des data et values
+        if type(fieldName) is list:
+            for i in range(0, len(fieldName)):
+                if i > 0:
+                    mefdv += ", "
+                mefdv += "{d} = '{v}'".format(d=fieldName[i], v=fieldValue[i])
+        else:
+            mefdv = "{d} = '{v}'".format(d=fieldName, v=fieldValue)
+        # Mise en forme des filtres
+        sF = "WHERE playerid = '{0}'".format(PlayerID)
+        if filtre is not None:
+            if type(filtre) is list:
+                for i in range(0, len(filtre)):
+                    sF += " AND {0} = '{1}'".format(filtre[i], filtreValue[i])
+            elif type(filtre) is str:
+                sF += " AND {0} = '{1}'".format(filtre, filtreValue)
+
+        try:
+            script = text("UPDATE {n} SET {u} {f}".format(n=nameTable, f=sF, u=mefdv))
+            # print("==== updateField ====")
+            # print(script)
+            db.execute(script)
+            db.commit()
+            return True
+        except:
+            print('Error SQL update: {}'.format(script))
+            return False
+    else:
+        return False
