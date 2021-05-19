@@ -1,13 +1,11 @@
 from typing import List, Optional
 from pydantic import BaseModel
-from datetime import datetime
 
 
 class TableComTime(BaseModel):
     playerid: int
     command: str
-    time: datetime = None
-    owner: int
+    time: str = None
 
     class Config:
         orm_mode = True

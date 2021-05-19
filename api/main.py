@@ -4,7 +4,7 @@ from typing import List
 from fastapi import Depends, FastAPI, HTTPException
 from sqlalchemy.orm import Session
 from fastapi.encoders import jsonable_encoder
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, HTMLResponse
 from pydantic import BaseModel
 
 from . import crud, models, schemas
@@ -15,7 +15,7 @@ models.Base.metadata.create_all(bind=engine)
 
 
 app = FastAPI()
-VERSION = open("./version.txt").read().replace("\n", "")
+VERSION = open("version.txt").read().replace("\n", "")
 
 
 # Dependency
@@ -25,6 +25,13 @@ def get_db():
         yield db
     finally:
         db.close()
+
+
+@app.get("/", response_class=HTMLResponse)
+def html_main():
+    path = "html/index.html"
+    html_content = open(path).read()
+    return HTMLResponse(content=html_content, status_code=200)
 
 
 @app.get("/version/")
@@ -111,7 +118,7 @@ def read_user(PlayerID: int, db: Session = Depends(get_db)):
     return db_user
 
 # ----- Devise -----
-@app.get("/users/devise/{PlayerID}", response_model=schemas.TableCore, tags=["Users"])
+@app.get("/users/devise/{PlayerID}", tags=["Users"])
 def user_devise(PlayerID: int, db: Session = Depends(get_db)):
     val = crud.value(db, PlayerID, "core", "devise")
     if val is None:
@@ -119,7 +126,7 @@ def user_devise(PlayerID: int, db: Session = Depends(get_db)):
     return JSONResponse(content=jsonable_encoder(val))
 
 
-@app.put("/users/devise/{PlayerID}/{nb}", response_model=schemas.TableCore, tags=["Users"])
+@app.put("/users/devise/{PlayerID}/{nb}", tags=["Users"])
 def add_devise(PlayerID: int, nb: int, db: Session = Depends(get_db)):
     try:
         lang = crud.value(db, PlayerID, "core", "lang")
@@ -135,7 +142,7 @@ def add_devise(PlayerID: int, nb: int, db: Session = Depends(get_db)):
 
 
 # ----- Super Devise -----
-@app.get("/users/super_devise/{PlayerID}", response_model=schemas.TableCore, tags=["Users"])
+@app.get("/users/super_devise/{PlayerID}", tags=["Users"])
 def user_super_devise(PlayerID: int, db: Session = Depends(get_db)):
     val = crud.value(db, PlayerID, "core", "super_devise")
     if val is None:
@@ -143,7 +150,7 @@ def user_super_devise(PlayerID: int, db: Session = Depends(get_db)):
     return JSONResponse(content=jsonable_encoder(val))
 
 
-@app.put("/users/super_devise/{PlayerID}/{nb}", response_model=schemas.TableCore, tags=["Users"])
+@app.put("/users/super_devise/{PlayerID}/{nb}", tags=["Users"])
 def add_super_devise(PlayerID: int, nb: int, db: Session = Depends(get_db)):
     try:
         lang = crud.value(db, PlayerID, "core", "lang")
@@ -159,7 +166,7 @@ def add_super_devise(PlayerID: int, nb: int, db: Session = Depends(get_db)):
 
 
 # ----- Level -----
-@app.get("/users/level/{PlayerID}", response_model=schemas.TableCore, tags=["Users"])
+@app.get("/users/level/{PlayerID}", tags=["Users"])
 def user_level(PlayerID: int, db: Session = Depends(get_db)):
     val = crud.value(db, PlayerID, "core", "level")
     if val is None:
@@ -167,7 +174,7 @@ def user_level(PlayerID: int, db: Session = Depends(get_db)):
     return JSONResponse(content=jsonable_encoder(val))
 
 
-@app.put("/users/level/{PlayerID}/{nb}", response_model=schemas.TableCore, tags=["Users"])
+@app.put("/users/level/{PlayerID}/{nb}", tags=["Users"])
 def add_level(PlayerID: int, nb: int, db: Session = Depends(get_db)):
     try:
         lang = crud.value(db, PlayerID, "core", "lang")
@@ -183,7 +190,7 @@ def add_level(PlayerID: int, nb: int, db: Session = Depends(get_db)):
 
 
 # ----- XP -----
-@app.get("/users/xp/{PlayerID}", response_model=schemas.TableCore, tags=["Users"])
+@app.get("/users/xp/{PlayerID}", tags=["Users"])
 def user_xp(PlayerID: int, db: Session = Depends(get_db)):
     val = crud.value(db, PlayerID, "core", "xp")
     if val is None:
@@ -191,7 +198,7 @@ def user_xp(PlayerID: int, db: Session = Depends(get_db)):
     return JSONResponse(content=jsonable_encoder(val))
 
 
-@app.put("/users/xp/{PlayerID}/{nb}", response_model=schemas.TableCore, tags=["Users"])
+@app.put("/users/xp/{PlayerID}/{nb}", tags=["Users"])
 def add_xp(PlayerID: int, nb: int, db: Session = Depends(get_db)):
     try:
         lang = crud.value(db, PlayerID, "core", "lang")
@@ -207,7 +214,7 @@ def add_xp(PlayerID: int, nb: int, db: Session = Depends(get_db)):
 
 
 # ----- Lang -----
-@app.get("/users/lang/{PlayerID}", response_model=schemas.TableCore, tags=["Users"])
+@app.get("/users/lang/{PlayerID}", tags=["Users"])
 def user_lang(PlayerID: int, db: Session = Depends(get_db)):
     val = crud.value(db, PlayerID, "core", "lang")
     if val is None:
@@ -215,7 +222,7 @@ def user_lang(PlayerID: int, db: Session = Depends(get_db)):
     return JSONResponse(content=jsonable_encoder(val))
 
 
-@app.put("/users/lang/{PlayerID}/{newLang}", response_model=schemas.TableCore, tags=["Users"])
+@app.put("/users/lang/{PlayerID}/{newLang}", tags=["Users"])
 def update_lang(PlayerID: int, newLang: str, db: Session = Depends(get_db)):
     try:
         lang = crud.value(db, PlayerID, "core", "lang")
@@ -228,7 +235,7 @@ def update_lang(PlayerID: int, newLang: str, db: Session = Depends(get_db)):
 
 
 # ----- Pseudo -----
-@app.get("/users/pseudo/{PlayerID}", response_model=schemas.TableCore, tags=["Users"])
+@app.get("/users/pseudo/{PlayerID}", tags=["Users"])
 def user_pseudo(PlayerID: int, db: Session = Depends(get_db)):
     val = crud.value(db, PlayerID, "core", "pseudo")
     if val is None:
@@ -236,10 +243,10 @@ def user_pseudo(PlayerID: int, db: Session = Depends(get_db)):
     return JSONResponse(content=jsonable_encoder(val))
 
 
-@app.put("/users/pseudo/{PlayerID}/{newUsername}", response_model=schemas.TableCore, tags=["Users"])
+@app.put("/users/pseudo/{PlayerID}/{newUsername}", tags=["Users"])
 def update_pseudo(PlayerID: int, newUsername: str, db: Session = Depends(get_db)):
     NU = newUsername
-    pseudo = crud.value(db, PlayerID, "core", "pseuso")
+    pseudo = crud.value(db, PlayerID, "core", "pseudo")
     lang = crud.value(db, PlayerID, "core", "lang")
     func = {}
     if crud.in_table(db, "core", "pseudo", "pseudo", NU) is False:
@@ -252,7 +259,7 @@ def update_pseudo(PlayerID: int, newUsername: str, db: Session = Depends(get_db)
 
 
 # ----- Guild -----
-@app.get("/users/guild/{PlayerID}", response_model=schemas.TableCore, tags=["Users"])
+@app.get("/users/guild/{PlayerID}", tags=["Users"])
 def user_guild(PlayerID: int, db: Session = Depends(get_db)):
     val = crud.value(db, PlayerID, "core", "guild")
     if val is None:
@@ -260,8 +267,8 @@ def user_guild(PlayerID: int, db: Session = Depends(get_db)):
     return JSONResponse(content=jsonable_encoder(val))
 
 
-@app.put("/users/guild/{PlayerID}/{newGuild}", response_model=schemas.TableCore, tags=["Users"])
-def update_guild(PlayerID: int, newLang: str, db: Session = Depends(get_db)):
+@app.put("/users/guild/{PlayerID}/{newGuild}", tags=["Users"])
+def update_guild(PlayerID: int, newGuild: str, db: Session = Depends(get_db)):
     try:
         lang = crud.value(db, PlayerID, "core", "lang")
         guild = crud.value(db, PlayerID, "core", "guild")
@@ -274,24 +281,26 @@ def update_guild(PlayerID: int, newLang: str, db: Session = Depends(get_db)):
 
 
 # ----- Godchilds -----
-@app.get("/users/godchilds/{PlayerID}", response_model=schemas.TableCore, tags=["Users"])
+@app.get("/users/godchilds/{PlayerID}", response_model=List[schemas.TableCore], tags=["Users"])
 def get_godchilds(PlayerID: int, db: Session = Depends(get_db)):
     godchilds = crud.get_godchilds(db=db, PlayerID=PlayerID)
     if godchilds is None:
         return JSONResponse(content=jsonable_encoder({}))
-    return db_user
+    return godchilds
 
 
 @app.put("/users/{PlayerID}/godparent/{godparentID}", response_model=schemas.TableCore, tags=["Users"])
 def add_godparent(PlayerID: int, godparentID: int, db: Session = Depends(get_db)):
     lang = crud.value(db, PlayerID, "core", "lang")
     GPID = crud.get_PlayerID(db, godparentID, "discord")
-    if godchilds is None:
-        func = {'error': 1, 'etat': 'NOK', 'lang': lang}
+    if GPID is None:
+        func = {'error': 2, 'etat': 'NOK', 'lang': lang}
+        return JSONResponse(content=jsonable_encoder(func))
+    GPID = GPID.playerid
     myGP = crud.value(db, PlayerID, "core", "godparent")
     if (myGP == 0 or myGP == None or myGP is False) and PlayerID != GPID:
-        crud.update(db, PlayerID, "core", "godprent", GPID)
-        func = {'error': 0, 'etat': 'OK', 'lang': lang, 'new': newGuild, 'old': guild}
+        crud.update(db, PlayerID, "core", "godparent", GPID)
+        func = {'error': 0, 'etat': 'OK', 'lang': lang, 'new': GPID, 'old': myGP}
     else:
         func = {'error': 1, 'etat': 'NOK', 'lang': lang}
     return JSONResponse(content=jsonable_encoder(func))

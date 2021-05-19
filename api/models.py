@@ -1,5 +1,6 @@
 from sqlalchemy import Boolean, Column, ForeignKey, Integer, String, BigInteger, Date, DateTime, Float, Interval, Text, Time, Unicode, UnicodeText
 from sqlalchemy.orm import relationship
+import datetime as dt
 
 from .database import Base
 
@@ -28,7 +29,7 @@ class TableComTime(Base):
 
     playerid = Column(BigInteger, ForeignKey("core.playerid"), primary_key=True)
     command = Column(String, primary_key=True)
-    time = Column(DateTime)
+    time = Column(String)
 
     owner = relationship("TableCore", back_populates="com_time")
 

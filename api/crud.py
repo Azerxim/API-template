@@ -2,13 +2,13 @@ from sqlalchemy.orm import Session
 from sqlalchemy.sql import func
 from sqlalchemy import text
 import datetime as dt
-import time as t
+import time as t, datetime as dt
 from . import models, schemas
 
 
 # -------------------------------------------------------------------------------
 def get_user(db: Session, PlayerID: int):
-    return db.query(models.TableCore).filter(models.TableCore.id == PlayerID).first()
+    return db.query(models.TableCore).filter(models.TableCore.playerid == PlayerID).first()
 
 
 # -------------------------------------------------------------------------------
@@ -27,8 +27,8 @@ def get_users(db: Session, skip: int = 0, limit: int = 100):
 
 
 # -------------------------------------------------------------------------------
-def get_Godchilds(db: Session, PlayerID: int):
-    return db.query(models.TableCore).filter(models.TableCore.godparent == PlayerID).first()
+def get_godchilds(db: Session, PlayerID: int):
+    return db.query(models.TableCore).filter(models.TableCore.godparent == PlayerID).all()
 
 
 # -------------------------------------------------------------------------------
@@ -40,7 +40,7 @@ def get_PlayerID(db: Session, discord_id: str, platform: str):
 # Createur
 # ===============================================================================
 def create_user(db: Session, user: schemas.TableCore):
-    id = 0
+    id = 1
     boucleID = True
     while boucleID:
         if not get_user(db, id):
@@ -52,7 +52,7 @@ def create_user(db: Session, user: schemas.TableCore):
         discord_id = user.discord_id,
         pseudo = user.pseudo,
         lang = user.lang,
-        guild = None,
+        guild = "None",
         level = 0,
         xp = 0,
         devise = 0,
@@ -71,8 +71,7 @@ def create_com_time(db: Session, user: schemas.TableComTime):
     db_user = models.GemsComTime(
         playerid = user.playerid,
         command = user.command,
-        time = user.time,
-        owner = user.owner
+        time = user.time
     )
     db.add(db_user)
     db.commit()
@@ -145,15 +144,13 @@ def spam(db: Session, PlayerID, couldown, Command):
     """Antispam """
     nameTable = "com_time"
     ComTime = value(db, PlayerID, nameTable, "time", "command", Command)
+    time = float(ComTime)
     if not ComTime or ComTime == None:
         return True
-    elif ComTime != 0:
-        time = ComTime
+    elif time != 0:
+        return(float(time) < t.time()-couldown)
     else:
         return True
-
-    # on récupère la date de la dernière commande
-    return(float(time) < t.time()-couldown)
 
 
 # -------------------------------------------------------------------------------
@@ -166,17 +163,17 @@ def updateComTime(db: Session, PlayerID, Command):
     old_value = value(db, PlayerID, nameTable, "time", "command", Command)
     try:
         if old_value is not False:
-            update(db, PlayerID, nameTable, "time", t.time(), "command", Command)
-            return {'error': 0, 'action': 'update success'}
+            time = t.time()
+            update(db, PlayerID, nameTable, "time", time, "command", Command)
+            return {'error': 0, 'action': 'update success', 'time': time}
         else:
             comtime_model = models.TableComTime(
                 playerid = PlayerID,
                 command = Command,
-                time = t.time(),
-                owner = PlayerID
+                time = str(t.time())
             )
             create_com_time(db, comtime_model)
-            return {'error': 0, 'action': 'update fail -> create success'}
+            return {'error': 0, 'action': 'update fail -> create success', 'time': comtime_model.time}
     except:
         return {'error': 404, 'action': 'echec'}
 

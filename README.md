@@ -1,6 +1,6 @@
 # GG-API
 
-Version 1.0
+Version 1.0.1
 
 #### Installation
 
@@ -40,5 +40,5 @@ uvicorn api.main:app --reload
 ###### Production
 
 ```bash
-uvicorn api.main:app --host 0.0.0.0 --port 5195
+uvicorn api.main:app --host 127.0.0.1 --port 5195
 ```
