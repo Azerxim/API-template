@@ -1,11 +1,9 @@
-import os
-
 from typing import List
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, Security
+from fastapi.security.api_key import APIKeyHeader, APIKey
 from sqlalchemy.orm import Session
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse, HTMLResponse
-from pydantic import BaseModel
 
 from . import crud, models, schemas
 from .database import SessionLocal, engine
@@ -16,6 +14,8 @@ models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 VERSION = open("version.txt").read().replace("\n", "")
+SECRET_KEY = open("api/key.txt", "r").read().replace("\n", "")
+SECRET_KEY_NAME = "access_token"
 
 
 # Dependency
@@ -25,6 +25,20 @@ def get_db():
         yield db
     finally:
         db.close()
+
+
+################# Security #####################
+
+api_key_header = APIKeyHeader(name=SECRET_KEY_NAME)
+
+async def get_api_key(api_key_header: str = Security(api_key_header)):
+    if api_key_header == SECRET_KEY:
+        return api_key_header
+    else:
+        raise HTTPException(status_code=403, detail="Could not validate credentials")
+
+
+################### API ########################
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -97,7 +111,7 @@ def get_playerID(discord_id: int, db: Session = Depends(get_db)):
 
 
 @app.post("/users/", response_model=schemas.TableCore, tags=["Users"])
-def create_user(user: schemas.TableCore, db: Session = Depends(get_db)):
+def create_user(user: schemas.TableCore, db: Session = Depends(get_db), api_key: APIKey = Depends(get_api_key)):
     db_user = crud.get_user_discord_id(db, discord_id=user.discord_id)
     if db_user:
         raise HTTPException(status_code=400, detail="Discord ID already registered")
@@ -127,7 +141,7 @@ def user_devise(PlayerID: int, db: Session = Depends(get_db)):
 
 
 @app.put("/users/devise/{PlayerID}/{nb}", tags=["Users"])
-def add_devise(PlayerID: int, nb: int, db: Session = Depends(get_db)):
+def add_devise(PlayerID: int, nb: int, db: Session = Depends(get_db), api_key: APIKey = Depends(get_api_key)):
     try:
         lang = crud.value(db, PlayerID, "core", "lang")
         bal = crud.value(db, PlayerID, "core", "devise")
@@ -151,7 +165,7 @@ def user_super_devise(PlayerID: int, db: Session = Depends(get_db)):
 
 
 @app.put("/users/super_devise/{PlayerID}/{nb}", tags=["Users"])
-def add_super_devise(PlayerID: int, nb: int, db: Session = Depends(get_db)):
+def add_super_devise(PlayerID: int, nb: int, db: Session = Depends(get_db), api_key: APIKey = Depends(get_api_key)):
     try:
         lang = crud.value(db, PlayerID, "core", "lang")
         bal = crud.value(db, PlayerID, "core", "super_devise")
@@ -175,7 +189,7 @@ def user_level(PlayerID: int, db: Session = Depends(get_db)):
 
 
 @app.put("/users/level/{PlayerID}/{nb}", tags=["Users"])
-def add_level(PlayerID: int, nb: int, db: Session = Depends(get_db)):
+def add_level(PlayerID: int, nb: int, db: Session = Depends(get_db), api_key: APIKey = Depends(get_api_key)):
     try:
         lang = crud.value(db, PlayerID, "core", "lang")
         bal = crud.value(db, PlayerID, "core", "level")
@@ -199,7 +213,7 @@ def user_xp(PlayerID: int, db: Session = Depends(get_db)):
 
 
 @app.put("/users/xp/{PlayerID}/{nb}", tags=["Users"])
-def add_xp(PlayerID: int, nb: int, db: Session = Depends(get_db)):
+def add_xp(PlayerID: int, nb: int, db: Session = Depends(get_db), api_key: APIKey = Depends(get_api_key)):
     try:
         lang = crud.value(db, PlayerID, "core", "lang")
         bal = crud.value(db, PlayerID, "core", "xp")
@@ -223,7 +237,7 @@ def user_lang(PlayerID: int, db: Session = Depends(get_db)):
 
 
 @app.put("/users/lang/{PlayerID}/{newLang}", tags=["Users"])
-def update_lang(PlayerID: int, newLang: str, db: Session = Depends(get_db)):
+def update_lang(PlayerID: int, newLang: str, db: Session = Depends(get_db), api_key: APIKey = Depends(get_api_key)):
     try:
         lang = crud.value(db, PlayerID, "core", "lang")
         newLang = newLang.upper()
@@ -244,7 +258,7 @@ def user_pseudo(PlayerID: int, db: Session = Depends(get_db)):
 
 
 @app.put("/users/pseudo/{PlayerID}/{newUsername}", tags=["Users"])
-def update_pseudo(PlayerID: int, newUsername: str, db: Session = Depends(get_db)):
+def update_pseudo(PlayerID: int, newUsername: str, db: Session = Depends(get_db), api_key: APIKey = Depends(get_api_key)):
     NU = newUsername
     pseudo = crud.value(db, PlayerID, "core", "pseudo")
     lang = crud.value(db, PlayerID, "core", "lang")
@@ -268,7 +282,7 @@ def user_guild(PlayerID: int, db: Session = Depends(get_db)):
 
 
 @app.put("/users/guild/{PlayerID}/{newGuild}", tags=["Users"])
-def update_guild(PlayerID: int, newGuild: str, db: Session = Depends(get_db)):
+def update_guild(PlayerID: int, newGuild: str, db: Session = Depends(get_db), api_key: APIKey = Depends(get_api_key)):
     try:
         lang = crud.value(db, PlayerID, "core", "lang")
         guild = crud.value(db, PlayerID, "core", "guild")
@@ -290,7 +304,7 @@ def get_godchilds(PlayerID: int, db: Session = Depends(get_db)):
 
 
 @app.put("/users/{PlayerID}/godparent/{godparentID}", response_model=schemas.TableCore, tags=["Users"])
-def add_godparent(PlayerID: int, godparentID: int, db: Session = Depends(get_db)):
+def add_godparent(PlayerID: int, godparentID: int, db: Session = Depends(get_db), api_key: APIKey = Depends(get_api_key)):
     lang = crud.value(db, PlayerID, "core", "lang")
     GPID = crud.get_PlayerID(db, godparentID, "discord")
     if GPID is None:
@@ -315,7 +329,7 @@ def get_command_time(PlayerID: int, Command: str, couldown: int, db: Session = D
     return JSONResponse(content=jsonable_encoder(res))
 
 @app.put("/comtime/update/{PlayerID}/{Command}", tags=["Command Time"])
-def update_command_time(PlayerID: int, Command: str, db: Session = Depends(get_db)):
+def update_command_time(PlayerID: int, Command: str, db: Session = Depends(get_db), api_key: APIKey = Depends(get_api_key)):
     res = crud.updateComTime(db, PlayerID, Command)
     if res is None:
         res = {}
@@ -324,7 +338,7 @@ def update_command_time(PlayerID: int, Command: str, db: Session = Depends(get_d
 
 # ========= Test =========
 # @app.post("/test/{PlayerID}", tags=["Test"])
-# def test(PlayerID: int, db: Session = Depends(get_db)):
+# def test(PlayerID: int, db: Session = Depends(get_db), api_key: APIKey = Depends(get_api_key)):
 #     res = {}
 #     if res is None:
 #         res = {}
