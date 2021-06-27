@@ -96,7 +96,7 @@ def countTotalSuperDevise(db: Session):
 # -------------------------------------------------------------------------------
 def taille(db: Session):
     """Retourne la taille de la table selectionnée"""
-    return db.query(func.count(models.TableCore.id).label("taille")).first()
+    return db.query(func.count(models.TableCore.playerid).label("taille")).first()
 
 
 # ===============================================================================
