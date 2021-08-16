@@ -14,7 +14,8 @@ def install(package, version = None):
 install("pip")
 
 # API
-install("fastapi[all]", "0.63.0")
+install("fastapi[all]", "0.68.0")
+install("uvicorn")
 
 # Base de données
 install("SQLAlchemy", "1.4.3")
