@@ -131,3 +131,4 @@ dmypy.json
 db-api.db
 api/key.txt
 .vscode/settings.json
+config/config.json
