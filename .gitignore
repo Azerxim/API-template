@@ -130,3 +130,4 @@ dmypy.json
 .pyre/
 db-api.db
 api/key.txt
+.vscode/settings.json
