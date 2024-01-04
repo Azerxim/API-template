@@ -7,7 +7,7 @@ Version 1.0.1
 1. Cloner le répertoire GitHub
 
    ```bash
-   git clone https://github.com/bastion-gaming/DB-API
+   git clone https://github.com/azerxim/DB-API
    cd DB-API/
    ```
 
@@ -15,8 +15,8 @@ Version 1.0.1
 
    ```bash
    python3 -m pip install --user virtualenv
-   python3 -m venv env
-   source env/bin/activate
+   python3 -m venv .env
+   source .env/bin/activate
    ```
 
 3. Installation des dépendances

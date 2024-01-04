@@ -1,10 +1,12 @@
 from typing import List
-from fastapi import Depends, FastAPI, HTTPException, Security
+from fastapi import Depends, FastAPI, HTTPException, Security, Request, status
 from fastapi.security.api_key import APIKeyHeader, APIKey
 from sqlalchemy.orm import Session
 from fastapi.encoders import jsonable_encoder
-from fastapi.responses import JSONResponse, HTMLResponse
+from fastapi.responses import JSONResponse, HTMLResponse, RedirectResponse
+from fastapi.templating import Jinja2Templates
 
+from core import file as f, gestion as ge
 from . import crud, models, schemas
 from .database import SessionLocal, engine
 
@@ -13,8 +15,10 @@ models.Base.metadata.create_all(bind=engine)
 
 
 app = FastAPI()
-VERSION = open("version.txt").read().replace("\n", "")
-SECRET_KEY = open("api/key.txt", "r").read().replace("\n", "")
+CONFIG = f.json_read("config/config.json")
+VERSION = CONFIG['version']
+NAME = CONFIG['name']
+SECRET_KEY = CONFIG['key']
 SECRET_KEY_NAME = "access_token"
 
 
@@ -25,6 +29,10 @@ def get_db():
         yield db
     finally:
         db.close()
+
+################# Templates ####################
+
+templates = Jinja2Templates(directory="html")
 
 
 ################# Security #####################
@@ -39,18 +47,50 @@ async def get_api_key(api_key_header: str = Security(api_key_header)):
 
 
 ################### API ########################
+@app.on_event("startup")
+async def startup_event():
+    print(f"{ge.bcolors.green}INFO{ge.bcolors.end}:     -------------------")
+    print(f"{ge.bcolors.green}INFO{ge.bcolors.end}:     {ge.bcolors.purple}{NAME}{ge.bcolors.end}")
+    print(f"{ge.bcolors.green}INFO{ge.bcolors.end}:     Version {ge.bcolors.lightblue}{VERSION}{ge.bcolors.end}")
+    print(f"{ge.bcolors.green}INFO{ge.bcolors.end}:     -------------------")
 
 
 @app.get("/", response_class=HTMLResponse)
-def html_main():
-    path = "html/index.html"
-    html_content = open(path).read()
-    return HTMLResponse(content=html_content, status_code=200)
+def html_main(request: Request):
+    return templates.TemplateResponse("version.html", {"request": request, "api": NAME, "version": VERSION})
 
 
 @app.get("/version/")
 def app_version():
-    return {'api': 'db', 'version': VERSION}
+    return {'api': NAME, 'version': VERSION}
+
+
+# --------------------------------------
+# ---------------- HTML ----------------
+# --------------------------------------
+
+# ==== ERROR ====
+@app.get("/error-404", response_class=HTMLResponse)
+def app_error(request: Request):
+    return templates.TemplateResponse("error-404.html", {"request": request, "api": NAME})
+
+@app.get("/error", response_class=HTMLResponse)
+def error(request: Request, text: str):
+    return templates.TemplateResponse("error.html", {"request": request, "api": NAME, "text": text})
+
+
+# ==== READ ====
+@app.get("/html/users/read/", response_class=HTMLResponse, tags=["HTML"])
+def html_read_users(request: Request, skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    users = crud.get_users(db=db, skip=skip, limit=limit)
+    return templates.TemplateResponse("users.html", {"request": request, "api": NAME, "users": users})
+
+@app.get("/html/user/read/{PlayerID}", response_class=HTMLResponse, tags=["HTML"])
+def html_read_user(request: Request, PlayerID: int, db: Session = Depends(get_db)):
+    user = crud.get_user(db=db, PlayerID=PlayerID)
+    if user is None:
+        return templates.TemplateResponse("error.html", {"request": request, "api": NAME, "text": "Utilisateur non trouvé"})
+    return templates.TemplateResponse("user.html", {"request": request, "api": NAME, "user": user})
 
 
 # ========= Info Global =========

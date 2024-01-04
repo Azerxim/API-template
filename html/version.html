@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+	<!--=======================-->
+	<!--====== HTML HEAD ======-->
+	<!--=======================-->
+	<head>
+		<meta name="author" content="Azerxim">
+		<meta http-equiv="Content-type" content="text/html;charset=UTF-8"/>
+		<meta name="description" content="{{ api }}"/>
+		<meta name="keywords" content=""/>
+		<meta name="viewport" content="width=device-width, initial-scale=1">
+		<meta name="robots" content="noindex, nofollow">
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<meta name="language" content="French">
+		<link rel="shortcut icon" href="//spinelle.eu/images/favicon.ico"/>
+
+        <title>{{ api }}</title>
+
+        {% include 'menu/css.html' %}
+
+    </head>
+    <body>
+
+        {% include 'menu/general.html' %}
+        <div class="container">
+            <div class="content is-medium">
+                <div class="flex-center-full fd-col gap-20" style="padding: 10px;">
+                    <div class="flex-center-full fd-col gap-10">
+                        <h1 class="is-size-1">{{ api }}</h1>
+                        <img src="https://dl.topazdev.fr/stock/images/web/galaxie.png" alt="logo"/>
+                        <span class="is-size-2">Version {{ version }}</span>
+                    </div>
+                </div>
+
+                <div class="flex-center-full fd-col gap-20" style="margin: 30px 0px;">
+                    <a class="button is-TD-smoothwhite" style="width: 100%; height: 60px; font-size: 20px;" href="/infos">Infos</a>
+
+                    <a class="button is-TD-smoothwhite" style="width: 100%; height: 60px; font-size: 20px;" href="/html/users/read/"><span>Liste des utilisateurs</span></a>
+              
+                    <a class="button is-TD-smoothwhite button-apparition-custom" data-target="GetUsers" id="GetUsersButton" style="display: flex; width: 100%; height: 60px; font-size: 20px;">Users</a>
+                    
+                    <div class="hero" style="display: none; margin: 10px 0;" id="GetUsers">
+                        <div class="columns is-centered">
+                            <div column is-5-tablet is-4-desktop is-3-widescreen>
+                                <form method="GET" class="box" action="users" style="background-color: #f2f2f2; border-radius: 20px;">
+                                    <h3 class="flex-center-full ultradarkblue" style="font-size: 20px; margin-bottom: 10px;">Users</h3>
+                                    <div class="field">
+                                        <p class="control has-icons-left has-icons-right">
+                                            <input class="input is-hovered is-rounded is-TD-smoothwhite" name="skip" type="text" placeholder="Start" value="" required>
+                                            <span class="icon is-small is-left">
+                                                <i class="fas fa-circle-play"></i>
+                                            </span>
+                                        </p>
+                                    </div>
+                                    <div class="field">
+                                        <p class="control has-icons-left has-icons-right">
+                                            <input class="input is-hovered is-rounded is-TD-smoothwhite" name="limit" type="text" placeholder="Limit" value="" required>
+                                            <span class="icon is-small is-left">
+                                                <i class="fas fa-circle-stop"></i>
+                                            </span>
+                                        </p>
+                                    </div>
+                        
+                                    <div class="field flex-center-full" style="margin-top: 10px;">
+                                        <p class="control">
+                                            <a class="button is-TD-red is-rounded button-apparition-custom" data-target="GetUsers">
+                                                Annuler
+                                            </a>
+                                            <button class="button is-TD-green is-rounded">
+                                                Voir
+                                            </button>
+                                        </p>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+        </div>
+      
+        <script>
+          document.addEventListener('DOMContentLoaded', () => {
+            const $button = Array.prototype.slice.call(document.querySelectorAll('.button-apparition-custom'), 0);
+      
+            if ($button.length > 0) {
+              $button.forEach( el => {
+                el.addEventListener('click', () => {
+                  const target = el.dataset.target;
+                  const $target = document.getElementById(target);
+      
+                  if ($target.style.display === "none") {
+                    $target.style.display = "flex";
+                  } else {
+                    $target.style.display = "none";
+                  }
+      
+                  const $targetB = document.getElementById(target+"Button");
+                  if ($targetB.style.display === "none") {
+                    $targetB.style.display = "flex";
+                  } else {
+                    $targetB.style.display = "none";
+                  }
+                });
+              });
+            }
+          });
+        </script>
+
+        {% include 'menu/footer.html' %}
+
+    </body>
+</html>
