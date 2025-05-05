@@ -1,3 +1,4 @@
+import os
 from typing import List
 from fastapi import Depends, FastAPI, HTTPException, Security, Request, status
 from fastapi.security.api_key import APIKeyHeader, APIKey
@@ -6,9 +7,21 @@ from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse, HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
-from core import file as f, gestion as ge
+from topazdevsdk import file as f, colors
 from . import crud, models, schemas
 from .database import SessionLocal, engine
+
+# CONFIGURATION
+path = f"{os.path.realpath(os.path.dirname(__file__))}/../config/"
+pathfile = f"{path}config.json"
+
+if not f.exist(path):
+	f.createdir(path)
+
+if not f.exist(pathfile):
+	f.create(pathfile)
+	data = '{"version": "1.1", "name": "DB API", "key": "INSERT PRIVATE KEY HERE"}'
+	f.write(pathfile, data)
 
 
 models.Base.metadata.create_all(bind=engine)
@@ -49,10 +62,10 @@ async def get_api_key(api_key_header: str = Security(api_key_header)):
 ################### API ########################
 @app.on_event("startup")
 async def startup_event():
-    print(f"{ge.bcolors.green}INFO{ge.bcolors.end}:     -------------------")
-    print(f"{ge.bcolors.green}INFO{ge.bcolors.end}:     {ge.bcolors.purple}{NAME}{ge.bcolors.end}")
-    print(f"{ge.bcolors.green}INFO{ge.bcolors.end}:     Version {ge.bcolors.lightblue}{VERSION}{ge.bcolors.end}")
-    print(f"{ge.bcolors.green}INFO{ge.bcolors.end}:     -------------------")
+    print(f"{colors.BColors.GREEN}INFO{colors.BColors.END}:     -------------------")
+    print(f"{colors.BColors.GREEN}INFO{colors.BColors.END}:     {colors.BColors.PURPLE}{NAME}{colors.BColors.END}")
+    print(f"{colors.BColors.GREEN}INFO{colors.BColors.END}:     Version {colors.BColors.LIGHTBLUE}{VERSION}{colors.BColors.END}")
+    print(f"{colors.BColors.GREEN}INFO{colors.BColors.END}:     -------------------")
 
 
 @app.get("/", response_class=HTMLResponse)
