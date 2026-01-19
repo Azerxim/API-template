@@ -1,0 +1,22 @@
+{
+	"version": "3",
+	"api": {
+		"name": "NAME API",
+		"ip": "0.0.0.0",
+		"port": 8000
+	},
+	"database": {
+		"name": "database",
+		"debug": false
+	},
+	"security": {
+		"username": "admin",
+		"full_name": "Administrateur",
+		"email": "email@example.com",
+		"password": "votre_mot_de_passe_securise"
+	},
+	"oauth2": {
+		"client_id": "your_client_id_here",
+		"client_secret": "your_client_secret_here"
+	}
+}

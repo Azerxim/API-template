@@ -1,0 +1,4 @@
+requests
+topazdevsdk==1.1.0
+fastapi[standard]==0.128.0
+sqlmodel==0.0.31
