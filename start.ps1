@@ -7,7 +7,7 @@ $VENV_DIR = ".venv"
 while ($true) {
     Clear-Host
     Write-Host "==========================================" -ForegroundColor Cyan
-    Write-Host "  Shard API Manager" -ForegroundColor Green
+    Write-Host "  API Manager" -ForegroundColor Green
     Write-Host "==========================================" -ForegroundColor Cyan
     Write-Host ""
     Write-Host "Select an option:" -ForegroundColor Yellow

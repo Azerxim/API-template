@@ -28,14 +28,22 @@ def check_database_tables():
     from topazdevsdk import colors
     from sqlalchemy import inspect, text
     from . import models
+    import inspect as inspect_module
 
     print(f"{colors.BColors.CYAN}Vérification de la structure des tables...{colors.BColors.END}")
     
     inspector = inspect(engine)
     existing_tables = inspector.get_table_names()
     
-    # Vérifier chaque modèle SQLModel
-    model_classes = [models.Users, models.ActiveSession]
+    # Découvrir dynamiquement tous les modèles SQLModel avec une table
+    import inspect as inspect_module
+    model_classes = [
+        obj for name, obj in inspect_module.getmembers(models)
+        if (inspect_module.isclass(obj) and 
+            issubclass(obj, models.SQLModel) and 
+            hasattr(obj, '__table__') and
+            obj is not models.SQLModel)
+    ]
     
     for model_class in model_classes:
         # Obtenir le nom de la table à partir du modèle SQLModel

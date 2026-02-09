@@ -16,7 +16,7 @@ NC='\033[0m' # No Color
 while true; do
     clear
     echo -e "${CYAN}==========================================${NC}"
-    echo -e "${GREEN}  Shard API Manager${NC}"
+    echo -e "${GREEN}  API Manager${NC}"
     echo -e "${CYAN}==========================================${NC}"
     echo ""
     echo -e "${YELLOW}Select an option:${NC}"

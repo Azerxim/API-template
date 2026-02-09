@@ -2,10 +2,12 @@ from typing import Annotated
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.encoders import jsonable_encoder
-from fastapi.responses import JSONResponse, HTMLResponse, FileResponse
+from fastapi.responses import JSONResponse, HTMLResponse, FileResponse, Response
 from fastapi.templating import Jinja2Templates
 from fastapi.staticfiles import StaticFiles
 from fastapi.openapi.docs import get_swagger_ui_html, get_redoc_html
+from fastapi.exceptions import RequestValidationError
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from contextlib import asynccontextmanager
 
 from sqlmodel import Session
@@ -13,7 +15,7 @@ from .database import get_db, create_db_and_tables, check_database_tables
 
 from . import utils
 from topazdevsdk import colors
-from . import schemas, crud
+from . import schemas, crud, models
 from .routes_users import router as users_router
 
 
@@ -72,6 +74,41 @@ favicon_path = 'assets/images/favicon.ico'
 async def favicon():
     return FileResponse(favicon_path)
 
+robots_path = 'robots.txt'
+@app.get('/robots.txt', include_in_schema=False)
+async def robots():
+    return FileResponse(robots_path, media_type='text/plain')
+
+@app.get('/sitemap.xml', include_in_schema=False)
+async def sitemap(request: Request):
+    """Generate sitemap.xml dynamically"""
+    base_url = str(request.base_url).rstrip('/')
+    
+    # Define routes with their priority and change frequency
+    routes = [
+        {'loc': '/', 'priority': '1.0', 'changefreq': 'weekly'},
+        # {'loc': '/login', 'priority': '0.8', 'changefreq': 'monthly'},
+        # {'loc': '/register', 'priority': '0.8', 'changefreq': 'monthly'},
+        # {'loc': '/profile', 'priority': '0.7', 'changefreq': 'weekly'},
+        # {'loc': '/users', 'priority': '0.7', 'changefreq': 'daily'},
+        {'loc': '/docs', 'priority': '0.6', 'changefreq': 'monthly'},
+    ]
+    
+    # Build XML sitemap
+    xml_content = '<?xml version="1.0" encoding="UTF-8"?>\n'
+    xml_content += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+    
+    for route in routes:
+        xml_content += '  <url>\n'
+        xml_content += f'    <loc>{base_url}{route["loc"]}</loc>\n'
+        xml_content += f'    <changefreq>{route["changefreq"]}</changefreq>\n'
+        xml_content += f'    <priority>{route["priority"]}</priority>\n'
+        xml_content += '  </url>\n'
+    
+    xml_content += '</urlset>'
+    
+    return Response(content=xml_content, media_type='application/xml')
+
 ################# Security #################
 
 # -----------------------------------------------
@@ -122,6 +159,8 @@ def html_main(request: Request):
         "hostname": utils.HOSTNAME
     })
 
+################# Docs Routes #################
+
 # -----------------------------------------------
 @app.get("/docs", response_class=HTMLResponse, include_in_schema=False)
 async def custom_swagger_ui_html(request: Request):
@@ -154,9 +193,39 @@ async def redoc_html(request: Request):
         "redoc_ui_html": redoc_ui.body.decode()
     })
 
+###################  API Endpoints #################
+
 # -----------------------------------------------
 @app.get("/api/version/")
 def app_version():
-    result = {'name': utils.CONFIG['api']['name'], 'version': utils.CONFIG['api']['version']}
+    result = {'name': utils.CONFIG['api']['name'], 'version': utils.VERSION, 'version_dev': utils.VERSION_DEV, 'version_short': utils.VERSION_SHORT, 'hostname': utils.HOSTNAME}
     return JSONResponse(content=jsonable_encoder(result))
 
+################# 404 Handler #################
+
+# -----------------------------------------------
+@app.exception_handler(StarletteHTTPException)
+async def http_exception_handler(request: Request, exc: StarletteHTTPException):
+    """Handle HTTP exceptions, including 404 errors"""
+    # For 404 errors with HTML accept header, return 404 template
+    if exc.status_code == 404:
+        accept_header = request.headers.get("accept", "")
+        if "text/html" in accept_header or not request.url.path.startswith("/api"):
+            return templates.TemplateResponse("404.html", {
+                "request": request,
+                "name": utils.CONFIG['api']['name'],
+                "version": utils.VERSION_SHORT,
+                "hostname": utils.HOSTNAME
+            }, status_code=404)
+    
+    # For API requests or non-404 errors, return JSON
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.detail}
+    )
+
+# -----------------------------------------------
+@app.get("/{full_path:path}", response_class=HTMLResponse)
+async def catch_all(full_path: str):
+    """Catch-all route for undefined paths"""
+    raise StarletteHTTPException(status_code=404, detail="Not Found")

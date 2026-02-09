@@ -29,6 +29,7 @@ Un template d'API moderne construit avec **FastAPI** et **SQLModel**.
 - 🔄 **Vérification des tables** - Synchronisation automatique des schémas BD avec les modèles
 - ⚙️ **Configuration flexible** - IP et PORT lus depuis config.json
 - 🔁 **Mode développeur** - Hot-reload optionnel avec --reload
+- 🤖 **Robots** - Réponse aux robots avec un robots.txt
 
 ## 📦 Prérequis
 
